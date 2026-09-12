@@ -59,3 +59,24 @@ jobs:
           name: jitmenu-deb
           path: packages/*.deb
           if-no-files-found: error
+
+      - name: Upload raw .dylib
+        run: |
+          mkdir -p dist
+          for cand in \
+            "$THEOS/_/var/jb/Library/MobileSubstrate/DynamicLibraries/34306jit.dylib" \
+            "$THEOS/_/Library/MobileSubstrate/DynamicLibraries/34306jit.dylib" \
+            ".theos/obj/arm64/34306jit.dylib" ; do
+            if [ -f "$cand" ]; then cp "$cand" dist/34306jit.dylib; break; fi
+          done
+          if [ ! -f dist/34306jit.dylib ]; then
+            echo "ERROR: 34306jit.dylib not found"; exit 1
+          fi
+          ls -l dist/34306jit.dylib
+
+      - name: Upload .dylib artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jitmenu-dylib
+          path: dist/34306jit.dylib
+          if-no-files-found: error
