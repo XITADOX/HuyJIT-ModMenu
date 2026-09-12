@@ -71,7 +71,7 @@ template<typename TKey, typename TValue>
 
     std::map<TKey, TValue> toMap() {
         std::map<TKey, TValue> ret;
-        auto lst = entries->template toCPPlist();
+        auto lst = entries->template toCPPlist<>();
         for (auto enter : lst)
             ret.insert(std::make_pair(enter.key, enter.value));
         return std::move(ret);
@@ -79,7 +79,7 @@ template<typename TKey, typename TValue>
 
     std::vector<TKey> getKeys() {
         std::vector<TKey> ret;
-        auto lst = entries->template toCPPlist();
+        auto lst = entries->template toCPPlist<>();
         for (auto enter : lst)
             ret.push_back(enter.key);
         return std::move(ret);
@@ -87,7 +87,7 @@ template<typename TKey, typename TValue>
 
     std::vector<TValue> getValues() {
         std::vector<TValue> ret;
-        auto lst = entries->template toCPPlist();
+        auto lst = entries->template toCPPlist<>();
         for (auto enter : lst)
             ret.push_back(enter.value);
         return std::move(ret);

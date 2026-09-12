@@ -69,6 +69,7 @@ struct AimkillMaster_t {
     bool SafeSilentAim = false;
     bool NoBulletTracking = false;
     bool hidedamage = false;
+    bool fastswitch = false;
     bool fastfiremax = false;
     bool fireScaleHack = false;
 } AimkillMaster;
