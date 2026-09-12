@@ -1,0 +1,61 @@
+name: Build Tweak (.deb)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    env:
+      THEOS: ${{ github.workspace }}/theos
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Theos
+        id: theos-cache
+        uses: actions/cache@v4
+        with:
+          path: theos
+          key: theos-${{ runner.os }}
+
+      - name: Install Theos
+        if: steps.theos-cache.outputs.cache-hit != 'true'
+        run: |
+          rm -rf "$THEOS"
+          git clone --recursive --depth=1 https://github.com/theos/theos.git "$THEOS"
+
+      - name: Cache iOS SDK
+        id: sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: theos/sdks
+          key: theos-sdks-iphoneos16.5
+
+      - name: Download iOS 16.5 SDK
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$THEOS/sdks"
+          curl -L -o sdk.tar.gz https://github.com/theos/sdks/archive/master.tar.gz
+          tar -xf sdk.tar.gz
+          cp -R "sdks-master/iPhoneOS16.5.sdk" "$THEOS/sdks/"
+          rm -rf sdks-master sdk.tar.gz
+
+      - name: Install build deps
+        run: brew install ldid dpkg
+
+      - name: Build package
+        run: |
+          make clean
+          make package FINALPACKAGE=1
+
+      - name: Upload .deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: jitmenu-deb
+          path: packages/*.deb
+          if-no-files-found: error

@@ -2,27 +2,69 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 #import <Foundation/Foundation.h>
+#include <iostream>
+#include <UIKit/UIKit.h>
+#include <vector>
+#import "pthread.h"
+#include <array>
+#import <os/log.h>
+#include <cmath>
+#include <deque>
+#include <fstream>
+#include <algorithm>
+#include <string>
+#include <sstream>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
+#include <cstdint>
+#include <cinttypes>
+#include <cerrno>
+#include <cctype>
 //Imgui library
 #import "Esp/CaptainHook.h"
 #import "Esp/ImGuiDrawView.h"
 #import "IMGUI/imgui.h"
+#import "IMGUI/imgui_internal.h"
 #import "IMGUI/imgui_impl_metal.h"
 #import "IMGUI/zzz.h"
-//Patch library
-#import "5Toubun/NakanoIchika.h"
-#import "5Toubun/NakanoNino.h"
-#import "5Toubun/NakanoMiku.h"
-#import "5Toubun/NakanoYotsuba.h"
-#import "5Toubun/NakanoItsuki.h"
-#import "5Toubun/dobby.h"
-#import "5Toubun/il2cpp.h"
+
+#include "oxorany/oxorany_include.h"
+#import "Helper/Mem.h"
+#include "font.h"
+#import "Helper/Vector3.h"
+#import "Helper/Vector2.h"
+#import "Helper/Quaternion.h"
+#import "Helper/Monostring.h"
+#include "Helper/font.h"
+#include "Helper/data.h"
+ImFont* verdana_smol;
+ImFont* pixel_big = {};
+ImFont* pixel_smol = {};
+#include "Helper/Obfuscate.h"
+#import "Helper/Hooks.h"
+#include <OpenGLES/ES2/gl.h>
+#include <OpenGLES/ES2/glext.h>
+#include <unistd.h>
+#include <string.h>
+
+#include "Other/dobby_defines.h"
+#import "Other/H5hook.h"
+#include "Other/Paste.h"
+
+#define Hook(x, y, z) \
+do { \
+    void* _hook_result = StaticInlineHookFunction( \
+        "Frameworks/UnityFramework.framework/UnityFramework", \
+        (uint64_t)(x), \
+        (void*)(y) \
+    ); \
+    *(void**)(&z) = _hook_result; \
+} while(0)
 
 #define kWidth  [UIScreen mainScreen].bounds.size.width
 #define kHeight [UIScreen mainScreen].bounds.size.height
 #define kScale [UIScreen mainScreen].scale
-#define patch_NULL(a, b) vm(ENCRYPTOFFSET(a), strtoul(ENCRYPTHEX(b), nullptr, 0))
-#define patch(a, b) vm_unity(ENCRYPTOFFSET(a), strtoul(ENCRYPTHEX(b), nullptr, 0))
-
 
 @interface ImGuiDrawView () <MTKViewDelegate>
 @property (nonatomic, strong) id <MTLDevice> device;
@@ -30,38 +72,11 @@
 @end
 
 @implementation ImGuiDrawView
-
-static bool show_s0 = false;
-
-//Function for hacking/cheating is now up here. Example auto update right here (work on every version of this game)
-void (*_LActorRoot_Visible)(void *instance, int camp, bool bVisible, const bool forceSync);
-void LActorRoot_Visible(void *instance, int camp, bool bVisible, const bool forceSync = false) {
-    if (instance != nullptr && show_s0) {
-        if(camp == 1 || camp == 2 || camp == 110 || camp == 255) {
-            bVisible = true;
-        }
-    } 
- return _LActorRoot_Visible(instance, camp, bVisible, forceSync);
-}
-
-uint64_t methodOffset;
-
-void initial_setup(){
-    //Auto update using ByNameModding for il2cpp
-    Il2CppAttach();
-
-    Il2CppMethod& getClass(const char* namespaze, const char* className);
-    uint64_t getMethod(const char* methodName, int argsCount);
-
-    Il2CppMethod methodAccess("Project.Plugins_d.dll");
-    methodOffset = methodAccess.getClass("NucleusDrive.Logic", "LVActorLinker").getMethod("SetVisible", 3);
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        //use DobbyHook, same kind of MSHookFunction but working on JIT, Dopamine!
-        DobbyHook((void *)getRealOffset(methodOffset), (void *)LActorRoot_Visible, (void **)&_LActorRoot_Visible);
-    });
-}
-
+ImFont *_espFont;
+ImFont* verdanab;
+ImFont* icons;
+ImFont* interb;
+ImFont* Urbanist;
 static bool MenDeal = true;
 
 
@@ -78,10 +93,56 @@ static bool MenDeal = true;
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-    ImGui::StyleColorsClassic();
-    
-    ImFont* font = io.Fonts->AddFontFromMemoryCompressedTTF((void*)zzz_compressed_data, zzz_compressed_size, 60.0f, NULL, io.Fonts->GetGlyphRangesVietnamese());
-    
+   ImGui::StyleColorsClassic();
+    auto& Style = ImGui::GetStyle();
+    Style.WindowPadding = ImVec2(8.0f, 8.0f);
+    Style.FramePadding = ImVec2(9.0f, 7.0f);
+    Style.ScrollbarRounding = 9.0f;
+            ImVec4* colors = ImGui::GetStyle().Colors;
+        colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
+        colors[ImGuiCol_PopupBg] = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
+        colors[ImGuiCol_FrameBg] = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
+        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.17f, 0.17f, 0.17f, 0.40f);
+        colors[ImGuiCol_FrameBgActive] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+        colors[ImGuiCol_TitleBg] = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
+        colors[ImGuiCol_TitleBgActive] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+        colors[ImGuiCol_CheckMark] = ImColor(163, 122, 195).Value;
+        colors[ImGuiCol_ScrollbarBg] = ImVec4(0, 0, 0, 0);
+        colors[ImGuiCol_ScrollbarGrab] = ImColor(163, 122, 195).Value;
+        colors[ImGuiCol_ScrollbarGrabHovered] = ImColor(163, 122, 195).Value;
+        colors[ImGuiCol_ScrollbarGrabActive] = ImColor(163, 122, 195).Value;
+        colors[ImGuiCol_SliderGrab] = ImColor(163, 122, 195).Value;
+        colors[ImGuiCol_SliderGrabActive] = ImColor(163, 122, 195).Value;
+        colors[ImGuiCol_Button] = ImVec4(0.24f, 0.24f, 0.24f, 0.40f);
+        colors[ImGuiCol_ButtonHovered] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+        colors[ImGuiCol_ButtonActive] = ImVec4(0.32f, 0.32f, 0.32f, 1.00f);
+        colors[ImGuiCol_Header] = ImVec4(0.73f, 0.73f, 0.73f, 0.31f);
+        colors[ImGuiCol_HeaderHovered] = ImVec4(0.65f, 0.65f, 0.65f, 0.80f);
+        colors[ImGuiCol_HeaderActive] = ImVec4(0.72f, 0.72f, 0.72f, 1.00f);
+        colors[ImGuiCol_Separator] = ImVec4(0.50f, 0.50f, 0.50f, 0.50f);
+        colors[ImGuiCol_SeparatorHovered] = ImVec4(0.52f, 0.52f, 0.52f, 0.78f);
+        colors[ImGuiCol_SeparatorActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+        colors[ImGuiCol_ResizeGrip] = ImColor(163, 122, 195).Value;
+        colors[ImGuiCol_ResizeGripHovered] = ImColor(163, 122, 195).Value;
+        colors[ImGuiCol_ResizeGripActive] = ImColor(163, 122, 195).Value;
+        colors[ImGuiCol_Tab] = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
+        colors[ImGuiCol_TabHovered] = ImVec4(0.29f, 0.29f, 0.29f, 0.80f);
+        colors[ImGuiCol_TabActive] = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
+        colors[ImGuiCol_TabUnfocused] = ImVec4(0.11f, 0.11f, 0.11f, 0.97f);
+        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.17f, 0.17f, 0.17f, 1.00f);
+        colors[ImGuiCol_TextSelectedBg] = ImVec4(0.59f, 0.11f, 0.11f, 0.35f);
+        colors[ImGuiCol_NavHighlight] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+        ImGui::GetStyle().Colors[ImGuiCol_WindowBg] = ImColor(28, 28, 30);
+        ImGui::GetStyle().Colors[ImGuiCol_Border] = ImColor(36, 36, 38);
+        ImGui::GetStyle().Colors[ImGuiCol_ChildBg] = ImColor(36, 36, 38);
+
+        ImGui::GetStyle().WindowRounding = 8 / 1.5f;
+        ImGui::GetStyle().FrameRounding = 4 / 1.5f;
+        ImGui::GetStyle().ChildRounding = 6 / 1.5f;
+    ImFont* font = io.Fonts->AddFontFromMemoryTTF(sansbold, sizeof(sansbold), 15.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
+    verdana_smol = io.Fonts->AddFontFromMemoryTTF(verdana, sizeof verdana, 40, NULL, io.Fonts->GetGlyphRangesCyrillic());
+    pixel_big = io.Fonts->AddFontFromMemoryTTF((void*)smallestpixel, sizeof smallestpixel, 128, NULL, io.Fonts->GetGlyphRangesCyrillic());
+    pixel_smol = io.Fonts->AddFontFromMemoryTTF((void*)smallestpixel, sizeof smallestpixel, 10*2, NULL, io.Fonts->GetGlyphRangesCyrillic());
     ImGui_ImplMetal_Init(_device);
 
     return self;
@@ -100,8 +161,6 @@ static bool MenDeal = true;
 - (void)loadView
 {
 
- 
-
     CGFloat w = [UIApplication sharedApplication].windows[0].rootViewController.view.frame.size.width;
     CGFloat h = [UIApplication sharedApplication].windows[0].rootViewController.view.frame.size.height;
     self.view = [[MTKView alloc] initWithFrame:CGRectMake(0, 0, w, h)];
@@ -116,9 +175,11 @@ static bool MenDeal = true;
     self.mtkView.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0];
     self.mtkView.clipsToBounds = YES;
 
+Hook(0x4DE1380, hk_get_ResetGuest, old_get_ResetGuest);
+
+Hook(0x541EDEC, hook_SimGliding, old_SimGliding);
+
 }
-
-
 
 #pragma mark - Interaction
 
@@ -165,42 +226,27 @@ static bool MenDeal = true;
 
 - (void)drawInMTKView:(MTKView*)view
 {
-   
-    
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize.x = view.bounds.size.width;
     io.DisplaySize.y = view.bounds.size.height;
 
-    CGFloat framebufferScale = view.window.screen.scale ?: UIScreen.mainScreen.scale;
+    CGFloat framebufferScale = view.window.screen.nativeScale ?: UIScreen.mainScreen.nativeScale;
     io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
-    io.DeltaTime = 1 / float(view.preferredFramesPerSecond ?: 120);
+    io.DeltaTime = 1 / float(view.preferredFramesPerSecond ?: 60);
     
     id<MTLCommandBuffer> commandBuffer = [self.commandQueue commandBuffer];
-    
-
-//Define your bool/function in here
-    static bool show_s1 = false;    
-    static bool show_s2 = false;    
-    static bool show_s3 = false;    
-    static bool show_s4 = false;    
-    static bool show_s5 = false;    
-    static bool show_s6 = false;                    
-    static bool show_s7 = false;        
-    static bool show_s8 = false;      
-    static bool show_s9 = false;     
-    static bool show_s10 = false;     
-    static bool show_s11 = false;     
-    static bool show_s12 = false;     
-
-//Define active function
-    static bool show_s0_active = false;
-    static bool show_s1_active = false;
-    
         
-        if (MenDeal == true) {
+        if (MenDeal == true) 
+        {
             [self.view setUserInteractionEnabled:YES];
-        } else if (MenDeal == false) {
+            
+        } 
+        else if (MenDeal == false) 
+        {
+           
             [self.view setUserInteractionEnabled:NO];
+           
+
         }
 
         MTLRenderPassDescriptor* renderPassDescriptor = view.currentRenderPassDescriptor;
@@ -211,53 +257,96 @@ static bool MenDeal = true;
 
             ImGui_ImplMetal_NewFrame(renderPassDescriptor);
             ImGui::NewFrame();
-            
-            ImFont* font = ImGui::GetFont();
-            font->Scale = 15.f / font->FontSize;
-            
-            CGFloat x = (([UIApplication sharedApplication].windows[0].rootViewController.view.frame.size.width) - 360) / 2;
-            CGFloat y = (([UIApplication sharedApplication].windows[0].rootViewController.view.frame.size.height) - 300) / 2;
-            
-            ImGui::SetNextWindowPos(ImVec2(x, y), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
-            
+    CGFloat x = (([UIApplication sharedApplication].windows[0].rootViewController.view.frame.size.width) - 380) / 2;
+    CGFloat y = (([UIApplication sharedApplication].windows[0].rootViewController.view.frame.size.height) - 260) / 2;
+     ImGui::SetNextWindowPos(ImVec2(x, y), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(365, 270), ImGuiCond_FirstUseEver);
             if (MenDeal == true)
             {                
-                ImGui::Begin("Little 34306 JIT Menu Auto Update Unity3D Games!", &MenDeal);
-                ImGui::Text("Use 3 Fingers Click 3 Times Open Menu\n2 Finger Tap Screen 2 Times Hide Menu\n\nOpen In Lobby");
-                ImGui::Text("Dùng 3 ngón chạm 2 lần để mở menu\n2 ngón chạm 2 lần để ẩn menu\n\nBật ở Sảnh");
-                
-                ImGui::TableNextColumn();
+                ImGui::Begin(oxorany("Free Fire"), &MenDeal);
+                if (ImGui::BeginTabBar(oxorany("Tab"),ImGuiTabBarFlags_FittingPolicyScroll)) {
+                    if (ImGui::BeginTabItem(("ESP"))) {
+                    ImGui::Checkbox(oxorany("Enable Cheats"), &Vars.Enable);
+                        if (ImGui::BeginTable("split", 4))
+                    {
+                    ImGui::TableNextColumn();
+                    ImGui::Checkbox(oxorany("Line"), &Vars.lines);
+                    ImGui::TableNextColumn();
+                    ImGui::Checkbox(oxorany("Box"), &Vars.Box);
+                    ImGui::TableNextColumn();
+                    ImGui::Checkbox(oxorany("Health"), &Vars.Health);
+                    ImGui::TableNextColumn();
+                    ImGui::Checkbox(oxorany("Name"), &Vars.Name);
+                    ImGui::TableNextColumn();
+                    ImGui::Checkbox(oxorany("Skeleton"), &Vars.skeleton);
+                    ImGui::TableNextColumn();
+                    ImGui::Checkbox(oxorany("Distance"), &Vars.Distance);
+                    ImGui::TableNextColumn();
+                    ImGui::Checkbox(oxorany("3D Circle"), &Vars.circlepos);
+                    ImGui::TableNextColumn();
+                    ImGui::Checkbox(oxorany("Outline"), &Vars.Outline);
+                        }
+                        ImGui::EndTable();
+                        ImGui::Checkbox(oxorany("Out of Screen"), &Vars.OOF);ImGui::SameLine();
+                        ImGui::Checkbox(oxorany("Enemy Count"), &Vars.enemycount);
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem(("AimBot"))) {
+                    ImGui::Spacing();
 
-                ImGui::Checkbox("Map Cheat Enable || Bật Hack Map", &show_s0);
+                    ImGui::Checkbox(oxorany("Enable Aimbot"), &Vars.Aimbot);
 
-                ImGui::Text("Contact on Telegram || Liên hệ qua Telegram:\n@little34306 or x.com/little_34306\nSupport || Hỗ trợ:\nXina, Dopamine, unc0ver, palera1n and Non-jailbreak (JIT)!\n(%.3f ms/frame (%.1f FPS))", 500.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+                    ImGui::Checkbox(oxorany("Reset Guest"), &Vars.ResetGuest);
 
-                ImGui::End();
-                //require this one inside this to attach when first open menu
-                initial_setup();
-                
-            }
+                    ImGui::Checkbox(oxorany("b_EnableGliderFly"), &b_EnableGliderFly);
+
+                    ImGui::Checkbox(oxorany("b_FlyUp"), &b_FlyUp);
+
+                            ImGui::Combo(oxorany("Aim When"), &Vars.AimWhen, Vars.dir, 4);
+                            ImGui::SliderFloat(oxorany("Aim FOV"), &Vars.AimFov, 0.0f, 500.0f);
+                            ImGui::Checkbox(oxorany("FOV Glow"), &Vars.fovaimglow);
+                            if (Vars.fovaimglow) {
+                                ImGui::ColorEdit4(oxorany("FOV Color"), Vars.fovLineColor);
+                            }
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem(("AIM"))) {
+                        ImGui::Spacing();
+                        if (ImGui::Checkbox(oxorany("Aimkill Send"), &AimkillMaster.SafeAimkill)) {
+                            AimkillMaster.hidedamage = AimkillMaster.SafeAimkill;
+                        }
+                        if (ImGui::Checkbox(oxorany("Body Kill"), &AimkillMaster.AimkillBody)) {
+                            if (AimkillMaster.AimkillBody) {
+                                AimkillMaster.AimkillFiring = true;
+                                AimkillMaster.BodySilentAim = true;
+                            } else {
+                                AimkillMaster.AimkillFiring = false;
+                                AimkillMaster.BodySilentAim = false;
+                            }
+                        }
+                        ImGui::Spacing();
+                        ImGui::TextColored(ImColor(200, 200, 200), oxorany("Aimkill Send only works when the target is in range."));
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem(("Info Developer"))) {
+
+
+                        ImGui::EndTabItem();
+                    }
+                    ImGui::EndTabBar();
+                }
+        ImGui::End();
+    }
             ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
-
-
-//This function is a patch example function, doesn't work on this menu because I didn't add the button into menu UI
-            if(show_s1){
-                if(show_s1_active == NO){
-                    patch("0x517A154", "0x360080D2");
-                    patch_NULL("0x10517A154", "0x360080D2");
-                    }
-                show_s1_active = YES;
+            get_players();
+            aimbot();
+            AimkillSendUpdateLoop(GetClosestEnemy());
+            game_sdk->init();
+            if (Vars.AimFov > 0) {
+                Vars.isAimFov = true;
+            } else {
+                Vars.isAimFov = false;
             }
-            else{
-                if(show_s1_active == YES){
-                    patch("0x517A154", "0xF60302AA");
-                    patch_NULL("0x10517A154", "0xF60302AA");
-                    }
-                show_s1_active = NO;
-            }
-
-
             ImGui::Render();
             ImDrawData* draw_data = ImGui::GetDrawData();
             ImGui_ImplMetal_RenderDrawData(draw_data, commandBuffer, renderEncoder);

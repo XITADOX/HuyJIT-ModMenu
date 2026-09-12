@@ -1,9 +1,3 @@
-//
-//  PubgLoad.m
-//  pubg
-//
-//  Created by 李良林 on 2021/2/14.
-//
 
 #import "PubgLoad.h"
 #import <UIKit/UIKit.h>
@@ -27,7 +21,7 @@ UIWindow *mainWindow;
 {
 [super load];
  
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3* NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(6* NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
              mainWindow = [UIApplication sharedApplication].keyWindow;
             extraInfo =  [PubgLoad new];
             [extraInfo initTapGes];
